@@ -1,19 +1,15 @@
 # pages/1_Kamus_Irregular_Verb.py
-
 import streamlit as st
 import pandas as pd
 import os
 
-# Nama file Excel (dianggap berada di root directory, satu tingkat di atas folder pages)
+# Nama file data
 FILE_NAME = "data_irreguralverb.xlsx"
 
-# --- Fungsi untuk Memuat Data ---
+# Dekorator untuk caching data
 @st.cache_data
 def load_data(file_path):
-    """Memuat data irregular verbs dari file Excel."""
-    
-    # Path file dihitung dari direktori utama, bukan dari folder pages
-    # os.path.join digunakan untuk memastikan path bekerja di semua sistem operasi
+    # Logika untuk mendapatkan path file.xlsx yang benar (satu tingkat di atas 'pages')
     root_dir = os.path.dirname(os.path.dirname(__file__))
     full_path = os.path.join(root_dir, file_path)
     
@@ -23,65 +19,49 @@ def load_data(file_path):
         
     try:
         df = pd.read_excel(full_path, header=0, names=['V1', 'V2', 'V3'])
-        # Konversi V1 menjadi dictionary untuk pencarian yang sangat cepat
         verb_dictionary = df.set_index('V1').T.to_dict('list')
         return verb_dictionary
-        
     except Exception as e:
-        st.error(f"Gagal memuat data dari Excel. Pastikan format kolom di Excel adalah V1, V2, V3. Error: {e}")
+        st.error(f"Gagal memuat data. Error: {e}")
         return None
 
-# --- Fungsi Utama Streamlit untuk Halaman ini ---
+# Fungsi utama halaman
 def kamus_app():
     st.title("📖 Kamus Irregular Verbs V1, V2, V3")
-    st.markdown("Pencarian otomatis dari data lokal (`file.xlsx`).")
-
-    # Muat data kamus
+    
     verb_dictionary = load_data(FILE_NAME)
 
     if verb_dictionary is None:
-        return # Berhenti jika gagal memuat data
+        return 
 
-    # Input pengguna yang memicu pencarian otomatis
     search_term = st.text_input(
         "Masukkan Kata Kerja (Verb 1):", 
         placeholder="Contoh: run, break, forget"
     ).strip().lower()
 
-    # Logika Pencarian Otomatis
     if search_term:
-        
-        # Cek apakah kata kerja ada di kamus lokal (Irregular Verbs)
         if search_term in verb_dictionary:
             v2, v3 = verb_dictionary[search_term]
             
             st.subheader(f"Hasil untuk: **{search_term.upper()}**")
             
-            # Tampilkan hasil dalam kolom
+            # Tampilkan hasil
             col1, col2, col3 = st.columns(3)
-            
             with col1:
                 st.metric("Verb 1 (Infinitive)", search_term)
-            
             with col2:
                 st.metric("Verb 2 (Past Simple)", v2)
-                
             with col3:
                 st.metric("Verb 3 (Past Participle)", v3)
-            
-            st.success("Kata kerja tak beraturan ditemukan! 🎉")
 
         else:
-            # Penanganan untuk kata kerja yang tidak ditemukan dalam daftar irregular
             st.info(f"Kata **'{search_term.upper()}'** tidak ditemukan dalam daftar Irregular Verbs.")
-            
-            # Tampilkan asumsi bentuk Regular Verb jika input cukup panjang
+            # Tampilkan asumsi Regular Verb
             if len(search_term) > 2:
+                # ... Logika tampilan Regular Verb di sini (seperti kode sebelumnya) ...
                 st.markdown("---")
                 st.caption("*Asumsi: Jika kata kerja ini beraturan (regular), maka bentuknya adalah:*")
-                
                 colA, colB, colC = st.columns(3)
-                
                 with colA:
                     st.metric("V1", search_term)
                 with colB:
@@ -89,6 +69,6 @@ def kamus_app():
                 with colC:
                     st.metric("V3 (Regular)", f"{search_term}ed")
 
-# Jalankan aplikasi jika file ini dipanggil
+
 if __name__ == "__main__":
     kamus_app()
